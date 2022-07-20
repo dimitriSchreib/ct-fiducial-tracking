@@ -36,3 +36,39 @@ def convert_scan_to_mesh(scan_file, output_mesh_file = 'temp_mesh.stl', threshol
         for j in range(3):
             cube.vectors[i][j] = verts[f[j],:]
     cube.save(output_mesh_file)
+
+def convert_scan_to_mesh_mha(scan_file, output_mesh_file = 'temp_mesh.stl', threshold_value = 1200, odir=''):
+    '''
+    input:
+        scan_file: DICOM data containing the sapcing deimesion
+        output_mesh_file: file name for storing the output thresholded mesh from marching cubes
+        threshold_value: threshold value for marching cubes (float, Hounsfield Units)
+    return:
+    '''
+    OUTPUT_DIR = odir
+    original_image = sitk.ReadImage(sitk.ImageSeriesReader_GetGDCMSeriesFileNames(scan_file))
+    # Write the image.
+    output_file_name_3D = os.path.join(OUTPUT_DIR, 'temp_mesh.mha')
+    sitk.WriteImage(original_image, output_file_name_3D)
+    
+    # convert from SimpleITK to Numpy
+    image_3D = sitk.ReadImage('temp_mesh.mha')
+    spacing_array = np.array([image_3D.GetSpacing()[2],image_3D.GetSpacing()[1],image_3D.GetSpacing()[0]])
+    print("spacing: ",spacing_array)
+
+    #run marching cubes
+    # convert mha into npdrarray with int type
+    ellip_double = sitk.GetArrayFromImage(image_3D)
+    ellip_double = ellip_double.astype(dtype='i2')
+    print("image_stack shape: ",ellip_double.shape)
+    verts, faces, normals, values = measure.marching_cubes(ellip_double, threshold_value)
+
+    #respace mesh vertices based on DICOM spacing
+    verts = verts * spacing_array
+
+    #create mesh object and save to disk
+    cube = mesh.Mesh(np.zeros(faces.shape[0], dtype=mesh.Mesh.dtype))
+    for i, f in enumerate(faces):
+        for j in range(3):
+            cube.vectors[i][j] = verts[f[j],:]
+    cube.save(output_mesh_file)

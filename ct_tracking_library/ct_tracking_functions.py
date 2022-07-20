@@ -94,7 +94,7 @@ def find_best_transform_from_candidate_marker_clusters(marker, good_centroid_clu
             error_list.append(error)
 
     error_list = np.array(error_list)
-    #print(error_list)
+    print(error_list)
     #print(R_list)
     #print(t_list)
     #print(permuted_centroids_list)
