@@ -6,6 +6,10 @@ import numpy as np
 from skimage import measure
 from stl import mesh
 
+#Dicom processing
+import SimpleITK as sitk
+import os
+
 def convert_scan_to_mesh(scan_file, output_mesh_file = 'temp_mesh.stl', threshold_value = 1200):
     '''
     input:
