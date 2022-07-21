@@ -38,7 +38,7 @@ def visualize_tracked_marker(marker, final_R, final_t, permuted_centroids):
 
     marker_3d_base = []
     for i in range(marker.shape[0]):
-        sphere = o3d.geometry.TriangleMesh.create_sphere(radius=3.0, resolution=20).translate(marker[i,:]).paint_uniform_color([0., 0., 0.8])
+        sphere = o3d.geometry.TriangleMesh.create_sphere(radius=2.0, resolution=20).translate(marker[i,:]).paint_uniform_color([0., 0., 0.8])
         marker_3d_base.append(copy.deepcopy(sphere))
 
     coordinate_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=10.0)#.rotate(R, center=(0, 0, 0))#mean_centroid_coordinates)
@@ -169,7 +169,7 @@ def calculate_transform(num_markers,centroids,marker_geometry, verbose=False):
             print("Hmm something doesn't look right ...")
     return final_R,final_t, permuted_centroids, min_error
 
-def find_candidate_centroids(target_marker, input_mesh_file = 'temp_mesh.stl', debug=False):
+def find_candidate_centroids(target_marker, input_mesh_file = 'temp_mesh.stl', debug=False, diameter_tolerance = 1, sphere_fit_rmse_tolerance = 0.5, r_target_marker_1 = 2., r_target_marker_2 = 3):
     '''
     finds candidate centroids and many other things...
     input:
@@ -264,12 +264,12 @@ def find_candidate_centroids(target_marker, input_mesh_file = 'temp_mesh.stl', d
             #good_inds.append(i)
 
             if target_marker == 'marker1':
-                r_target = 2.8
+                r_target = r_target_marker_1
             if target_marker == 'marker2':
-                r_target = 3.4
+                r_target = r_target_marker_2
                 
             diameter_tolerance = 0.5
-            sphere_fit_rmse_tolerance = 0.4
+            sphere_fit_rmse_tolerance = 0.25
             if mean_error < sphere_fit_rmse_tolerance and r > r_target - diameter_tolerance and r < r_target + diameter_tolerance:
                 if debug:
                     print('Mean Error: {}'.format(mean_error))

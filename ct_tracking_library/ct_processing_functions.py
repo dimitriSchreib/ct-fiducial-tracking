@@ -5,12 +5,13 @@ import numpy as np
 #mesh processing
 from skimage import measure
 from stl import mesh
+import open3d as o3d
 
 #Dicom processing
 import SimpleITK as sitk
 import os
 
-def convert_scan_to_mesh(scan_file, output_mesh_file = 'temp_mesh.stl', threshold_value = 1200):
+def convert_scan_to_mesh(scan_file, output_mesh_file = 'temp_mesh.stl', threshold_value = 1200, debug=False):
     '''
     input:
         scan_file: pickled data containing 
@@ -41,7 +42,13 @@ def convert_scan_to_mesh(scan_file, output_mesh_file = 'temp_mesh.stl', threshol
             cube.vectors[i][j] = verts[f[j],:]
     cube.save(output_mesh_file)
 
-def convert_scan_to_mesh_mha(scan_file, output_mesh_file = 'temp_mesh.stl', threshold_value = 1200, odir=''):
+    if debug:
+        saved_mesh_o3d = o3d.io.read_triangle_mesh(output_mesh_file)
+        saved_mesh_o3d.compute_vertex_normals()
+        print("Displaying segmented mesh")
+        o3d.visualization.draw_geometries([saved_mesh_o3d])
+
+def convert_scan_to_mesh_mha(scan_file, output_mesh_file = 'temp_mesh.stl', threshold_value = 1200, odir='', debug=False):
     '''
     input:
         scan_file: DICOM data containing the sapcing deimesion
@@ -76,3 +83,9 @@ def convert_scan_to_mesh_mha(scan_file, output_mesh_file = 'temp_mesh.stl', thre
         for j in range(3):
             cube.vectors[i][j] = verts[f[j],:]
     cube.save(output_mesh_file)
+
+    if debug:
+        saved_mesh_o3d = o3d.io.read_triangle_mesh(output_mesh_file)
+        saved_mesh_o3d.compute_vertex_normals()
+        print("Displaying segmented mesh")
+        o3d.visualization.draw_geometries([saved_mesh_o3d])
