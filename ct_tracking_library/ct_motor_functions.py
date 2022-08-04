@@ -2,6 +2,7 @@
 import asyncio
 import math
 import moteus
+import matplotlib.pyplot as plt
 import seaborn as sns
 
 async def motor_zero(c,stop_torque=.299,v=1,torque=0.3,test=False):
@@ -44,6 +45,7 @@ async def motor_zero(c,stop_torque=.299,v=1,torque=0.3,test=False):
         for x in range(700):
             await c.set_position(position=math.nan, velocity = v, maximum_torque= torque,query=True)
     print("Initial Starting Degree: ","{:.2f}".format(math.degrees(p)))
+    await c.set_stop()
     return p
 
 async def motor_home(c,stop_torque=.299,v=0.2,torque=0.3):
@@ -88,19 +90,19 @@ async def motor_home(c,stop_torque=.299,v=0.2,torque=0.3):
         if p <= m:
             print("homing")
             break
-    #await c.set_stop()
+    await c.set_stop()
     print("motor is ready")
     print("Initial Starting Degree: ","{:.2f}".format(math.degrees(p)))
     return p
 
-async def one_axis_farward(c,intial_position,user_degree=0,stop_torque=.299,v=1,torque=0.3):
+async def one_axis_farward(c,intial_position,user_desried=0,stop_torque=.299,v=1,torque=0.3):
     """
     This function runs the motor farward:
 
     Args:
         c: the moteus motor object
         intial_position(float): zeroing postion from zero method
-        user_degree(int): the desired angle user wants to moved
+        user_degree(float): the desired postion user wants to moved to 
         stop_torque (float): the therhold torque that tells when the motor should stop.
         v (float): the verlocity for the motor to move in rad/s.
         torque (float): the maximum torque for the motor.
@@ -109,29 +111,32 @@ async def one_axis_farward(c,intial_position,user_degree=0,stop_torque=.299,v=1,
     """
     p = intial_position
     p_list = []
-    ud = math.radians(user_degree)/((2*math.pi))
+    ud = user_desried
+    print("Desried postion: ",ud)
     print("Begain Testing")
+    await c.set_stop()
     while True:
-        state = await c.set_position(position=math.nan+p+ud, velocity = v, maximum_torque=torque, query=True)
+        state = await c.set_position(position=math.nan+ud, velocity = v, maximum_torque=torque, query=True)
         await asyncio.sleep(0.001)
         if state.values[moteus.Register.TORQUE] > stop_torque:
             print("stoped")
             p_list.append(state.values[moteus.Register.POSITION]*(2*math.pi))
             break
+        elif state.values[moteus.Register.POSITION] >= ud:
+            break
         else:
             p_list.append(state.values[moteus.Register.POSITION]*(2*math.pi))
-    await c.set_stop()
     print("Finish")
     return p_list
 
-async def one_axis_backward(c,intial_position,user_degree=0,stop_torque=.299,v=1,torque=0.3):
+async def one_axis_backward(c,intial_position,user_desried=0,stop_torque=.299,v=1,torque=0.3):
     """
     This function runs the motor backward:
 
     Args:
         c: the moteus motor object
         intial_position(float): zeroing postion from zero method
-        user_degree(int): the desired angle user wants to moved
+        user_desried(float): the desired postion user wants to moved
         stop_torque (float): the therhold torque that tells when the motor should stop.
         v (float): the verlocity for the motor to move in rad/s.
         torque (float): the maximum torque for the motor.
@@ -140,17 +145,20 @@ async def one_axis_backward(c,intial_position,user_degree=0,stop_torque=.299,v=1
     """
     p = intial_position
     p_list = []
-    ud = math.radians(user_degree)/((2*math.pi))
+    ud = user_desried
+    print("Desried postion: ",ud)
     print("car coming back")
+    await c.set_stop()
     while True:
-        state = await c.set_position(position=math.nan-(p+ud), velocity = -v, maximum_torque=torque, query=True)
+        state = await c.set_position(position=ud, velocity = -v, maximum_torque=torque, query=True)
         await asyncio.sleep(0.001)
         if state.values[moteus.Register.TORQUE] > stop_torque:
             print("stoped")
             break
+        elif state.values[moteus.Register.POSITION] <= ud:
+            break
         else:
             p_list.append(state.values[moteus.Register.POSITION]*(2*math.pi))
-    await c.set_stop()
     print("Finish")
     return p_list
 
