@@ -28,15 +28,9 @@ async def motor_zero(c,stop_torque=.299,v=1,torque=0.3,test=False):
     await asyncio.sleep(0.02) # wait for the motor to change state
     while True:
         state = await c.set_position(position=math.nan, velocity = -v, maximum_torque= torque,query=True)
-        #print("Position:", state.values[moteus.Register.POSITION])
-        #print("Torque:", state.values[moteus.Register.TORQUE])
-        #print()
         await asyncio.sleep(0.001) # wait for spped command to reach the motor
         toq = state.values[moteus.Register.TORQUE]
         if abs(toq) >= stop_torque:
-            #print("Position:", state.values[moteus.Register.POSITION])
-            #print("Torque:", state.values[moteus.Register.TORQUE])
-            #await c.set_stop()
             if not test:
                 print("motor is ready")
             p = state.values[moteus.Register.POSITION]
@@ -48,9 +42,9 @@ async def motor_zero(c,stop_torque=.299,v=1,torque=0.3,test=False):
     await c.set_stop()
     return p
 
-async def motor_home(c,stop_torque=.299,v=0.2,torque=0.3):
+async def motor_middle(c,stop_torque=.299,v=0.2,torque=0.3):
     """
-    This function setup the motor to "home":
+    This function setup the motor to the middle:
 
     Args:
         c: the moteus motor object
@@ -109,20 +103,20 @@ async def one_axis_farward(c,intial_position,user_desried=0,stop_torque=.299,v=1
     Returns:
         p_list(list): a list of the postion that the motor moved.
     """
-    p = intial_position
+    ip = intial_position
     p_list = []
     ud = user_desried
-    print("Desried postion: ",ud)
+    print("Target postion: ",ud+ip)
     print("Begain Testing")
     await c.set_stop()
     while True:
-        state = await c.set_position(position=math.nan+ud, velocity = v, maximum_torque=torque, query=True)
+        state = await c.set_position(position=ip+ud, velocity = v, maximum_torque=torque, query=True)
         await asyncio.sleep(0.001)
         if state.values[moteus.Register.TORQUE] > stop_torque:
             print("stoped")
             p_list.append(state.values[moteus.Register.POSITION]*(2*math.pi))
             break
-        elif state.values[moteus.Register.POSITION] >= ud:
+        elif state.values[moteus.Register.POSITION] >= (ud+ip):
             break
         else:
             p_list.append(state.values[moteus.Register.POSITION]*(2*math.pi))
@@ -143,19 +137,19 @@ async def one_axis_backward(c,intial_position,user_desried=0,stop_torque=.299,v=
     Returns:
         p_list(list): a list of the postion that the motor moved.
     """
-    p = intial_position
+    ip = intial_position
     p_list = []
     ud = user_desried
-    print("Desried postion: ",ud)
+    print("Target postion: ",ud+ip)
     print("car coming back")
     await c.set_stop()
     while True:
-        state = await c.set_position(position=ud, velocity = -v, maximum_torque=torque, query=True)
+        state = await c.set_position(position=(ud+ip), velocity = -v, maximum_torque=torque, query=True)
         await asyncio.sleep(0.001)
         if state.values[moteus.Register.TORQUE] > stop_torque:
             print("stoped")
             break
-        elif state.values[moteus.Register.POSITION] <= ud:
+        elif state.values[moteus.Register.POSITION] <= (ud+ip):
             break
         else:
             p_list.append(state.values[moteus.Register.POSITION]*(2*math.pi))
@@ -181,6 +175,7 @@ async def read_p(stop_torque=.299,v=0,torque=0):
     print("Position:", p)
     print("Position in Degree: ","{:.2f}".format(math.degrees(p)))
     return p
+
 async def stopping_acc_test(c,n_loop):
     """
     This function stops the motor farward and backward for testing accuray of the stopping and shows a box plot:
@@ -196,9 +191,9 @@ async def stopping_acc_test(c,n_loop):
     position_setpoint_list_b = []
     save_time = []
     for i in range(n_loop):
-        position_setpoint_list_f.append(math.degrees((await motor_zero(c,v=-1,test=True)*(2*math.pi))))
+        position_setpoint_list_f.append(math.degrees((await motor_zero(c,v=-1,test=True)*(2*math.pi)))/1000)
     for i in range(n_loop):
-        position_setpoint_list_b.append(math.degrees((await motor_zero(c,stop_torque=.1,v=1,test=True)*(2*math.pi))))
+        position_setpoint_list_b.append(math.degrees((await motor_zero(c,stop_torque=.1,v=1,test=True)*(2*math.pi)))/1000)
     sns.boxplot(data=position_setpoint_list_f,  orient='v', ax=axes[0]).set(title='Forward')
     sns.boxplot(data=position_setpoint_list_b,  orient='v' , ax=axes[1]).set(title='Backward')
     f.suptitle('Stopping Accuracy Test Plot')
