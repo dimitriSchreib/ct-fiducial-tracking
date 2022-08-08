@@ -59,13 +59,13 @@ def convert_scan_to_mha(scan_file, output_mha_file = 'temp_mesh.mha', odir='', c
     return:
     '''
     OUTPUT_DIR = odir
-    original_image = sitk.ReadImage(sitk.ImageSeriesReader_GetGDCMSeriesFileNames(scan_file))
+    original_image = sitk.ReadImage(scan_file)
     
     if crop_z:
         original_image=original_image[:,:,crop_z[0]:crop_z[1]]
         
     # Write the image.
-    output_file_name_3D = os.path.join(OUTPUT_DIR, 'temp_mesh.mha')
+    output_file_name_3D = os.path.join(OUTPUT_DIR, output_mha_file)
     sitk.WriteImage(original_image, output_file_name_3D)
         
 def convert_mha_to_mesh(mha_file='temp_mesh.mha', output_mesh_file = 'temp_mesh.stl', threshold_value = 2000, odir='', debug=False):
