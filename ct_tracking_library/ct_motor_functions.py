@@ -2,6 +2,7 @@
 import asyncio
 import math
 import moteus
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -199,3 +200,4 @@ async def stopping_acc_test(c,n_loop):
     f.suptitle('Stopping Accuracy Test Plot')
     f.text(0.5, 0.04, 'Group', ha='center')
     f.text(0.04, 0.5, 'degree', va='center', rotation='vertical')
+    return np.std(position_setpoint_list_f),np.std(position_setpoint_list_b)
