@@ -11,7 +11,7 @@ import open3d as o3d
 
 #Dicom processing
 import SimpleITK as sitk
-
+import mcubes
 
 def convert_scan_to_mesh(scan_file, output_mesh_file = 'temp_mesh.stl', threshold_value = 1200, debug=False):
     '''
@@ -50,7 +50,6 @@ def convert_scan_to_mesh(scan_file, output_mesh_file = 'temp_mesh.stl', threshol
         print("Displaying segmented mesh")
         o3d.visualization.draw_geometries([saved_mesh_o3d])
 
-        
 def convert_scan_to_mha(scan_file, output_mha_file = 'temp_mesh.mha', odir='', crop_z = None, debug=False):
     '''
     input:
@@ -68,7 +67,7 @@ def convert_scan_to_mha(scan_file, output_mha_file = 'temp_mesh.mha', odir='', c
     output_file_name_3D = os.path.join(OUTPUT_DIR, output_mha_file)
     sitk.WriteImage(original_image, output_file_name_3D)
         
-def convert_mha_to_mesh(mha_file='temp_mesh.mha', output_mesh_file = 'temp_mesh.stl', threshold_value = 2000, odir='', debug=False):
+def convert_mha_to_mesh(mha_file='temp_mesh.mha', output_mesh_file = 'temp_mesh.obj', threshold_value = 2000, odir='', debug=False):
     '''
     input:
         mha_file: DICOM data containing the sapcing deimesion
@@ -81,28 +80,40 @@ def convert_mha_to_mesh(mha_file='temp_mesh.mha', output_mesh_file = 'temp_mesh.
 
     spacing_array = np.array([image_3D.GetSpacing()[2],image_3D.GetSpacing()[1],image_3D.GetSpacing()[0]])
     print("spacing: ",spacing_array)
-
-    #run marching cubes
-    # convert mha into npdrarray with int type
+    origin = np.array([image_3D.GetOrigin()[2], image_3D.GetOrigin()[1], image_3D.GetOrigin()[0]])
+    print(" origin: ", origin)
+    # #run marching cubes
+    # # convert mha into npdrarray with int type
     ellip_double = sitk.GetArrayFromImage(image_3D)
     ellip_double = ellip_double.astype(dtype='i2')
-    #     if crop_z:
-    #         ellip_double = ellip_double[crop_z[0]:crop_z[1],:,:]
-    print("image_stack shape: ",ellip_double.shape)
-    verts, faces, normals, values = measure.marching_cubes(ellip_double, threshold_value)
+    # if crop_z:
+    #     ellip_double = ellip_double[crop_z[0]:crop_z[1],:,:]
+    #print("image_stack shape: ",ellip_double.shape)
 
-    #respace mesh vertices based on DICOM spacing
+    verts, triangles = mcubes.marching_cubes(ellip_double, threshold_value)
+
+    # grid = pv.UniformGrid(
+    #     dims=ellip_double.shape,
+    #     spacing=(spacing_array[0],spacing_array[1],spacing_array[2]),
+    #     origin=(origin[0],origin[1],origin[2]),
+    #     )
+    # mesh = grid.contour([1], ellip_double, method='marching_cubes')
+    # mesh.plot(scalars=dist, smooth_shading=True, specular=5, cmap="plasma", show_scalar_bar=False)
+
+    # verts, faces, normals, values = measure.marching_cubes(ellip_double, threshold_value)
+
+    # #respace mesh vertices based on DICOM spacing
     verts = verts * spacing_array
     
-    #offset verts due to origin
+    # #offset verts due to origin
     verts += np.array([image_3D.GetOrigin()[2], image_3D.GetOrigin()[1], image_3D.GetOrigin()[0]])
-
-    #create mesh object and save to disk
-    cube = mesh.Mesh(np.zeros(faces.shape[0], dtype=mesh.Mesh.dtype))
-    for i, f in enumerate(faces):
-        for j in range(3):
-            cube.vectors[i][j] = verts[f[j],:]
-    cube.save(output_mesh_file)
+    mcubes.export_obj(verts, triangles, output_mesh_file)
+    # #create mesh object and save to disk
+    # cube = mesh.Mesh(np.zeros(faces.shape[0], dtype=mesh.Mesh.dtype))
+    # for i, f in enumerate(faces):
+    #     for j in range(3):
+    #         cube.vectors[i][j] = verts[f[j],:]
+    # cube.save(output_mesh_file)
 
     if debug:
         saved_mesh_o3d = o3d.io.read_triangle_mesh(output_mesh_file)

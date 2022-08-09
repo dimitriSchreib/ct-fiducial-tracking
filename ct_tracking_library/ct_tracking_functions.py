@@ -202,45 +202,60 @@ def calculate_transform(num_markers,centroids,marker_geometry, verbose=False):
             print("Hmm something doesn't look right ...")
     return final_R,final_t, permuted_centroids, min_error
 
-def find_candidate_centroids(marker, input_mesh_file = 'temp_mesh.stl', debug=False, diameter_tolerance = 0.5, sphere_fit_rmse_tolerance = 0.25, r_target= 2., min_sphere_cluster_points = 10):
-    '''
-    finds candidate centroids and many other things...
-    input:
-        marker: geometry of target marker for tracking
-        input_mesh_file: mesh of environment including sepparated spheres used for fiducial trackcing of rigid bodies
-    return:
-    many things...
-    '''
+def get_small_clusters(input_mesh, max_area=70, min_area=25):
+    """ Finds largest cluster within the mesh and returns this cluster.
 
+    Args:
+        input_mesh: input mesh to be clustered and returned. mesh is not
+        modified inside the function. mesh should be an open3d mesh object
+
+    Returns:
+        An Open3D mesh with only the largest cluster
+
+    """
+    
+    #cluster connected triangles
+    with o3d.utility.VerbosityContextManager(
+            o3d.utility.VerbosityLevel.Debug) as cm:
+        triangle_clusters, cluster_n_triangles, cluster_area = (
+            input_mesh.cluster_connected_triangles())
+    triangle_clusters = np.asarray(triangle_clusters)
+    cluster_n_triangles = np.asarray(cluster_n_triangles)
+    cluster_area = np.asarray(cluster_area)
+
+    #keep largest cluster
+    output_mesh = copy.deepcopy(input_mesh)
+    triangles_to_remove_large = cluster_area[triangle_clusters] > max_area
+    triangles_to_remove_small = cluster_area[triangle_clusters] < min_area
+    triangles_to_remove = np.logical_or(triangles_to_remove_large, triangles_to_remove_small)
+    output_mesh.remove_triangles_by_mask(triangles_to_remove)
+    output_mesh.remove_unreferenced_vertices() #very import, removes the extra vertices so we can do the later stuff right!!!
+    
+    return output_mesh
+        
+        
+def find_candidate_centroids(marker, input_mesh_file = 'temp_mesh.obj', debug=False, diameter_tolerance = 0.5, sphere_fit_rmse_tolerance = 0.25, r_target= 2., min_sphere_cluster_points = 10):
+    
+    #load mesh
     mesh = o3d.io.read_triangle_mesh(input_mesh_file)
     mesh.compute_vertex_normals()
     if debug:
         print("Testing IO for meshes ...")
         o3d.visualization.draw_geometries([mesh])
 
+    #keep good sized mesh clusters
+    filter_mesh = get_small_clusters(mesh)
 
-    points = np.array(mesh.vertices)
-    pcd2 = o3d.geometry.PointCloud()
-    pcd2.points = o3d.utility.Vector3dVector(points)
-    pcd2.estimate_normals()
-    if debug:
-        o3d.visualization.draw_geometries([pcd2])
+    #turn mesh into pointcloud
+    points = np.array(filter_mesh.vertices)
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(points)
+    pcd.estimate_normals()
 
-    pcd2 = pcd2.voxel_down_sample(voxel_size = 0.8)
-    
-    
-    #filter points with further than average distance to neighbors
-    cl, ind = pcd2.remove_statistical_outlier(nb_neighbors=10,
-                                                    std_ratio=0.8) 
-    inlier_cloud = pcd2.select_by_index(ind)
-    outlier_cloud = pcd2.select_by_index(ind, invert=True)
-    if debug:
-        o3d.visualization.draw_geometries([inlier_cloud])
-    
     #cluster pointcloud
     with o3d.utility.VerbosityContextManager(o3d.utility.VerbosityLevel.Debug) as cm:
         labels = np.array(
-        inlier_cloud.cluster_dbscan(eps=1.5, min_points=10, print_progress=debug))
+        pcd.cluster_dbscan(eps=1.5, min_points=10, print_progress=debug))
     if debug:
         print(labels.max() )
     
@@ -248,12 +263,13 @@ def find_candidate_centroids(marker, input_mesh_file = 'temp_mesh.stl', debug=Fa
 
     colors = plt.get_cmap("tab20")(labels / (max_label if max_label > 0 else 1))
     colors[labels < 0] = 0
-    inlier_cloud.colors = o3d.utility.Vector3dVector(colors[:, :3])
-    inlier_cloud.estimate_normals()
+    pcd.colors = o3d.utility.Vector3dVector(colors[:, :3])
+    pcd.estimate_normals()
     if debug:
         print(f"point cloud has {max_label + 1} clusters")
-        o3d.visualization.draw_geometries([inlier_cloud])
+        o3d.visualization.draw_geometries([pcd])
 
+    
     # find balls good fit quiality and are the right size
     good_inds = []
     centroids = []
@@ -261,7 +277,7 @@ def find_candidate_centroids(marker, input_mesh_file = 'temp_mesh.stl', debug=Fa
             
     for i in tqdm.tqdm(range(labels.max()+1)):
         selected_indices = np.where(labels==i)
-        pcd_selected = inlier_cloud.select_by_index(selected_indices[0])
+        pcd_selected = pcd.select_by_index(selected_indices[0])
         points = np.array(pcd_selected.points)
 
         if points.shape[0] < 5000:
@@ -304,7 +320,7 @@ def find_candidate_centroids(marker, input_mesh_file = 'temp_mesh.stl', debug=Fa
                     print('Mean Error: {}'.format(mean_error))
                     print('Radius: {}'.format(r))
                     print('index: {}'.format(i))
-                    o3d.visualization.draw_geometries([copy.deepcopy(pcd_selected).paint_uniform_color([0.8, 0.0, 0.8]),copy.deepcopy(inlier_cloud).paint_uniform_color([0, 0.8, 0])])
+                    o3d.visualization.draw_geometries([copy.deepcopy(pcd_selected).paint_uniform_color([0.8, 0.0, 0.8]),copy.deepcopy(pcd).paint_uniform_color([0, 0.8, 0])])
 
                 centroids.append(np.array([x0,y0,z0]))
                 good_inds.append(i)
@@ -328,7 +344,7 @@ def find_candidate_centroids(marker, input_mesh_file = 'temp_mesh.stl', debug=Fa
     #find clusters of balls that are close enough to eachother based on the marker geometry
     good_centroids = o3d_selected_cluster_inds[0]
     selected_indices = np.where(labels==good_centroids[0])
-    pcd_selected = inlier_cloud.select_by_index(selected_indices[0])
+    pcd_selected = pcd.select_by_index(selected_indices[0])
     
     
     good_centroid_clusters = [centroid_cluster for centroid_cluster in centroid_clusters if len(centroid_cluster) >= marker.shape[0]]
@@ -346,7 +362,7 @@ def find_candidate_centroids(marker, input_mesh_file = 'temp_mesh.stl', debug=Fa
                 selected_indices = np.where(labels==good_centroids[i])
                 if debug:
                     print('adding cluster: {}'.format(i))
-                pcd_selected += inlier_cloud.select_by_index(selected_indices[0]) #this adds the full cluster of points. index 0 is to get rid of the list wrapper
+                pcd_selected += pcd.select_by_index(selected_indices[0]) #this adds the full cluster of points. index 0 is to get rid of the list wrapper
 
     pcd_selected.paint_uniform_color([0.8, 0.0, 0.8])
 
@@ -379,7 +395,6 @@ def find_candidate_centroids(marker, input_mesh_file = 'temp_mesh.stl', debug=Fa
         print('marker: {}'.format(marker))
     
     return copy.deepcopy(marker), copy.deepcopy(marker_centroid_coordinates), copy.deepcopy(pcd_selected), copy.deepcopy(mesh), copy.deepcopy(coordinate_frame), np.array(good_centroid_clusters)#, np.array(marker_centroid_coordinates_list)
-
 
 
 def sphereFit(spX,spY,spZ):
