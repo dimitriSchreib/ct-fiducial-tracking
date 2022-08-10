@@ -121,8 +121,9 @@ async def one_axis_farward(c,intial_position,user_desried=0,stop_torque=.299,v=1
             break
         else:
             p_list.append(state.values[moteus.Register.POSITION]*(2*math.pi))
+    p = state.values[moteus.Register.POSITION]
     print("Finish")
-    return p_list
+    return p_list,p
 
 async def one_axis_backward(c,intial_position,user_desried=0,stop_torque=.299,v=1,torque=0.3):
     """
@@ -154,8 +155,9 @@ async def one_axis_backward(c,intial_position,user_desried=0,stop_torque=.299,v=
             break
         else:
             p_list.append(state.values[moteus.Register.POSITION]*(2*math.pi))
+    p = state.values[moteus.Register.POSITION]
     print("Finish")
-    return p_list
+    return p_list,p
 
 async def read_p(stop_torque=.299,v=0,torque=0):
     """
