@@ -76,7 +76,8 @@ def t2T(r,t):
     Returns: 4x4 matrix
 
     """
-    return np.array([[r, t], [np.zeros((1,3)), 1]])
+
+    return np.vstack((np.hstack((r,t)),np.array([0,0,0,1])))
 
 def T2t(T):
     assert T.shape == (2, 2)
