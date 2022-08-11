@@ -29,14 +29,14 @@ class Robot():
     STD_f(float): the standard deviation of the motor on front end. 
     STD_b(float): the standard deviation of the motor on back end. 
     """
-    def __init__(self,time,m=None,joint_postion=None,set_point=None):
+    def __init__(self,time,m=None,joint_postion=None,set_point=None,d1=None,d2=None):
         self.time = time
         self.theta = joint_postion*m*(2*math.pi)
         self.m = m
         self.joint_postion = joint_postion
         self.set_point = set_point
-        self.STD_f = None
-        self.STD_b = None
+        self.STD_f = d1
+        self.STD_b = d2
 
     def __repr__(self):
         return f"Robot({self.time})"
