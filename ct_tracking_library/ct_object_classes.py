@@ -9,7 +9,7 @@ class Marker():
     T(np.array): transform of the marker.
     error: rmse of the spere picked.
     """
-    def __init__(self,time,name,d_key,geometry=None,T=None,error=None):
+    def __init__(self,name,d_key,time=None,geometry=None,T=None,error=None):
         self.time = time
         self.name = name
         self.key = d_key
@@ -29,7 +29,7 @@ class Robot():
     STD_f(float): the standard deviation of the motor on front end. 
     STD_b(float): the standard deviation of the motor on back end. 
     """
-    def __init__(self,time,m=None,joint_postion=None,set_point=None,d1=None,d2=None):
+    def __init__(self,time=None,m=None,joint_postion=None,set_point=None,d1=None,d2=None):
         self.time = time
         self.theta = joint_postion*m*(2*math.pi)
         self.m = m
