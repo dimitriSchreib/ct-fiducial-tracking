@@ -37,9 +37,9 @@ def find_fk(m1,m2,robot,plot=False,debug=False):
         Tfinal.plot(frame='1',color='blue')
         Tfk.plot(frame='2',color='red')
         plt.legend(["tracked EE pose relative to base pose","FKee"])
-        print("Postion Error vector(mm): ", Tfinal.t-Tfk.t)
+        print("Postion Error vector(m): ", Tfinal.t-Tfk.t)
         print("Rotational Error: ", r1-r2)
-    print("Postion Error norm(mm): ", np.linalg.norm(Tfinal.t-Tfk.t))
+    print("Postion Error norm(m): ", np.linalg.norm(Tfinal.t-Tfk.t))
     print("Rotional Error norm(Euler Angle): ", r1-r2)
     return Tbase*Tfk,(r1-r2),(Tfinal.t-Tfk.t)
 
