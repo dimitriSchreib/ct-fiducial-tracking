@@ -16,7 +16,7 @@ async def motor_zero(c,stop_torque=.299,v=1,torque=0.3,test=False):
         torque (float): the maximum torque for the motor.
 
     Returns:
-        float: the "zero" position in radians
+        float: the "zero" position in revolutions
 
     """
     print("begin zeroing")
@@ -36,11 +36,13 @@ async def motor_zero(c,stop_torque=.299,v=1,torque=0.3,test=False):
                 print("motor is ready")
             p = state.values[moteus.Register.POSITION]
             break
+
+    
     if test:
         for x in range(700):
             await c.set_position(position=math.nan, velocity = v, maximum_torque= torque,query=True)
     print("Initial Starting Degree: ","{:.2f}".format(math.degrees(p)))
-    await c.set_stop()
+    #await c.set_stop()
     return p
 
 async def motor_middle(c,stop_torque=.299,v=0.2,torque=0.3):
@@ -123,7 +125,7 @@ async def one_axis_farward(c,intial_position,user_desried=0,stop_torque=.299,v=1
             p_list.append(state.values[moteus.Register.POSITION]*(2*math.pi))
     p = state.values[moteus.Register.POSITION]
     print("Finish")
-    return p_list,p
+    return p_list,rev2m(p)
 
 async def one_axis_backward(c,intial_position,user_desried=0,stop_torque=.299,v=1,torque=0.3):
     """
@@ -157,7 +159,7 @@ async def one_axis_backward(c,intial_position,user_desried=0,stop_torque=.299,v=
             p_list.append(state.values[moteus.Register.POSITION]*(2*math.pi))
     p = state.values[moteus.Register.POSITION]
     print("Finish")
-    return p_list,p
+    return p_list,rev2m(p)
 
 async def read_p(stop_torque=.299,v=0,torque=0):
     """
@@ -175,9 +177,9 @@ async def read_p(stop_torque=.299,v=0,torque=0):
     await asyncio.sleep(0.001)
     p = state.values[moteus.Register.POSITION]
     await c.set_stop()
-    print("Position:", p)
+    print("Position(rev):", p)
     print("Position in Degree: ","{:.2f}".format(math.degrees(p)))
-    return p
+    return rev2m(p)
 
 async def stopping_acc_test(c,n_loop):
     """
@@ -192,7 +194,6 @@ async def stopping_acc_test(c,n_loop):
     f, axes = plt.subplots(1, 2)
     position_setpoint_list_f = []
     position_setpoint_list_b = []
-    save_time = []
     for i in range(n_loop):
         position_setpoint_list_f.append(math.degrees((await motor_zero(c,v=-1,test=True)*(2*math.pi)))/1000)
     for i in range(n_loop):
@@ -203,3 +204,21 @@ async def stopping_acc_test(c,n_loop):
     f.text(0.5, 0.04, 'Group', ha='center')
     f.text(0.04, 0.5, 'degree', va='center', rotation='vertical')
     return np.std(position_setpoint_list_f),np.std(position_setpoint_list_b)
+
+def rev2m(prev):
+    ratio = 0.5040628051757813
+    pmm = prev/ratio
+    return pmm
+
+async def main():
+    print('Connecting to motor')
+    c = moteus.Controller()
+    
+    ip = await motor_zero(c,stop_torque=.1,v=1)
+    print('Finished Zeroing')
+    await asyncio.sleep(5)
+
+    print('Disconnecting from motor')
+    await read_p()
+if __name__ == "__main__":
+    asyncio.run(main())

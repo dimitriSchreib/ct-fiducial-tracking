@@ -21,27 +21,54 @@ def find_fk(m1,m2,robot,plot=False,debug=False):
 
     Returns:
         FK in scanner base
-        rotional error matrix in mm
-        postion error matrix in Euler degree
+        rotional error matrix
+        postion error matrix in meter
     """
-    # find offset in mm
     Tbase = SE3(m2.T)
     Tee = SE3(m1.T)
     e = E.tx(-0.04009572)*E.ty(0.02163274)*E.tz(-0.01404157)*E.tz()
     e = e*E.Rx(90, 'deg')*E.Ry(-90, 'deg')
     Tfk = SE3(e.eval([(robot.joint_postion-robot.zero_postion)/1000]))
     Tfinal = Tbase.inv()*Tee
-    r1 = R2E(Tee.R)
-    r2 = R2E(Tbase.R)
     if debug:
         Tfinal.plot(frame='1',color='blue')
         Tfk.plot(frame='2',color='red')
         plt.legend(["tracked EE pose relative to base pose","FKee"])
-        print("Postion Error vector(m): ", Tfinal.t-Tfk.t)
-        print("Rotational Error: ", r1-r2)
-    print("Postion Error norm(m): ", np.linalg.norm(Tfinal.t-Tfk.t))
-    print("Rotional Error norm(Euler Angle): ", r1-r2)
-    return Tbase*Tfk,(r1-r2),(Tfinal.t-Tfk.t)
+        print("Postion Error vector(m): ", find_p_error(Tfk.t,Tfinal.t))
+        print("Rotational Error: ", calc_needle_ori_error(Tfk.R, Tfinal.R))
+    print("Postion Error norm(m): ", np.linalg.norm(find_p_error(Tfk.t,Tfinal.t)))
+    print("Rotional Error norm(Euler Angle): ", calc_needle_ori_error(Tfk.R, Tfinal.R))
+    return Tbase*Tfk,calc_needle_ori_error(Tfk.R, Tfinal.R),find_p_error(Tfk.t,Tfinal.t)
+
+def find_p_error(p_target,p_current):
+    """
+    This function calucated the postion difference between target and where the robot is currently are.
+    Args:
+        p_target(np.array of 1x3 vector): the postion of the target desired
+        p_current(np.array of 1x3 vector): the postion of the current robot
+    Returns:
+        error(np.array of 1x3 vector): the error in x,y,z deirection.
+    """
+    error = p_target-p_current
+    return error
+
+def calc_needle_ori_error(R_target, R_current):
+    '''
+    calculates axis-angle between target and current rotation matrices for robot EE control
+    inputs:
+        R_target: [3x3] SO3 rotation matrix numpy array for target rotation matrix
+        R_current: [3x3] SO3 rotation matrix numpy array for current rotation matrix
+    returns:
+        [3x1] axis-angle orientation error where the magnitude is the rotation in radians around the axis
+    '''
+    target_vec = R_target[:,2]
+    current_vec = R_current[:,2]
+    normal = np.cross(target_vec, current_vec)
+    normal /= np.linalg.norm(normal)
+    projected = target_vec @ current_vec / (np.linalg.norm(target_vec)*np.linalg.norm(current_vec))
+    angle = -np.arccos(projected).squeeze()
+    axis = normal.squeeze()
+    return axis*angle
 
 def display_fk(fk,m1,m,debug=False):
     Tee = SE3(m1.T)
