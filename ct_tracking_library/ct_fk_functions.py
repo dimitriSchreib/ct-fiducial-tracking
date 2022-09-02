@@ -26,21 +26,23 @@ def find_fk(m1,m2,robot,plot=False,debug=False):
     """
     Tbase = SE3(m2.T)
     Tee = SE3(m1.T)
-    e = E.tx(-0.04009572)*E.ty(0.02163274)*E.tz(-0.01404157)*E.tz()
+    #e = E.tx(-0.04009572)*E.ty(0.02163274)*E.tz(-0.01404157)*E.tz()
+    #e = E.tx(0)*E.ty(0)*E.tz(0)*E.tz()
+    e = E.tx(-40.5)*E.ty(21.7)*E.tz(6.56)*E.tz()
     e = e*E.Rx(90, 'deg')*E.Ry(-90, 'deg')
-    Tfk = SE3(e.eval([(robot.joint_postion-robot.zero_postion)/1000]))
+    Tfk = SE3(e.eval([(robot.joint_postion-robot.zero_postion)]))
     Tfinal = Tbase.inv()*Tee
     if debug:
         Tfinal.plot(frame='1',color='blue')
         Tfk.plot(frame='2',color='red')
         plt.legend(["tracked EE pose relative to base pose","FKee"])
-        print("Postion Error vector(m): ", find_p_error(Tfk.t,Tfinal.t))
+        print("Postion Error vector(mm): ", calc_p_error(Tfk.t,Tfinal.t))
         print("Rotational Error: ", calc_needle_ori_error(Tfk.R, Tfinal.R))
-    print("Postion Error norm(m): ", np.linalg.norm(find_p_error(Tfk.t,Tfinal.t)))
+    print("Postion Error norm(mm): ", np.linalg.norm(calc_p_error(Tfk.t,Tfinal.t)))
     print("Rotional Error norm(Euler Angle): ", calc_needle_ori_error(Tfk.R, Tfinal.R))
-    return Tbase*Tfk,calc_needle_ori_error(Tfk.R, Tfinal.R),find_p_error(Tfk.t,Tfinal.t)
+    return Tbase*Tfk,calc_needle_ori_error(Tfk.R, Tfinal.R),calc_p_error(Tfk.t,Tfinal.t)
 
-def find_p_error(p_target,p_current):
+def calc_p_error(p_target,p_current):
     """
     This function calucated the postion difference between target and where the robot is currently are.
     Args:
@@ -49,7 +51,7 @@ def find_p_error(p_target,p_current):
     Returns:
         error(np.array of 1x3 vector): the error in x,y,z deirection.
     """
-    error = p_target-p_current
+    error = p_target.reshape((3,1))-p_current.reshape((3,1))
     return error
 
 def calc_needle_ori_error(R_target, R_current):
@@ -74,9 +76,9 @@ def display_fk(fk,m1,m,debug=False):
     Tee = SE3(m1.T)
     marker = np.array([[-10,-5,0],[-10,5,0],[0,-5,0],[10,0,0]])
     R = np.eye(3)
-    marker_3d_tracked = create_marker_visualization(marker, [0.2, 0.2, 0.8], Tee.R, Tee.t.reshape((3,1))*1000) #blue color
-    marker_3d_transformed = create_marker_visualization(marker, [0.8, 0.8, 0.0], fk.R, fk.t.reshape((3,1))*1000) #yellow color
-    marker_3d_transformed.append(create_coordinate_frame_visualization(fk.R, fk.t.reshape((3,1))*1000))
+    marker_3d_tracked = create_marker_visualization(marker, [0.2, 0.2, 0.8], Tee.R, Tee.t.reshape((3,1))) #blue color
+    marker_3d_transformed = create_marker_visualization(marker, [0.8, 0.8, 0.0], fk.R, fk.t.reshape((3,1))) #yellow color
+    marker_3d_transformed.append(create_coordinate_frame_visualization(fk.R, fk.t.reshape((3,1))))
     #visualize tracked markers on top of mesh used for tracking
     visualization_list = marker_3d_tracked+marker_3d_transformed + [m]
     o3d.visualization.draw_geometries(visualization_list)

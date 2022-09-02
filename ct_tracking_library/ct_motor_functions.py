@@ -36,12 +36,9 @@ async def motor_zero(c,stop_torque=.299,v=1,torque=0.3,test=False):
                 print("motor is ready")
             p = state.values[moteus.Register.POSITION]
             break
-
-    
     if test:
         for x in range(700):
             await c.set_position(position=math.nan, velocity = v, maximum_torque= torque,query=True)
-    print("Initial Starting Degree: ","{:.2f}".format(math.degrees(p)))
     #await c.set_stop()
     return p
 
@@ -107,7 +104,6 @@ async def one_axis_farward(c,intial_position,user_desried=0,stop_torque=.299,v=1
         p_list(list): a list of the postion that the motor moved.
     """
     ip = intial_position
-    p_list = []
     ud = user_desried
     print("Target postion: ",ud+ip)
     print("Begain Testing")
@@ -117,15 +113,12 @@ async def one_axis_farward(c,intial_position,user_desried=0,stop_torque=.299,v=1
         await asyncio.sleep(0.001)
         if state.values[moteus.Register.TORQUE] > stop_torque:
             print("stoped")
-            p_list.append(state.values[moteus.Register.POSITION]*(2*math.pi))
             break
         elif state.values[moteus.Register.POSITION] >= (ud+ip):
             break
-        else:
-            p_list.append(state.values[moteus.Register.POSITION]*(2*math.pi))
     p = state.values[moteus.Register.POSITION]
     print("Finish")
-    return p_list,rev2m(p)
+    return rev2m(p)
 
 async def one_axis_backward(c,intial_position,user_desried=0,stop_torque=.299,v=1,torque=0.3):
     """
@@ -142,7 +135,6 @@ async def one_axis_backward(c,intial_position,user_desried=0,stop_torque=.299,v=
         p_list(list): a list of the postion that the motor moved.
     """
     ip = intial_position
-    p_list = []
     ud = user_desried
     print("Target postion: ",ud+ip)
     print("car coming back")
@@ -155,11 +147,9 @@ async def one_axis_backward(c,intial_position,user_desried=0,stop_torque=.299,v=
             break
         elif state.values[moteus.Register.POSITION] <= (ud+ip):
             break
-        else:
-            p_list.append(state.values[moteus.Register.POSITION]*(2*math.pi))
     p = state.values[moteus.Register.POSITION]
     print("Finish")
-    return p_list,rev2m(p)
+    return rev2m(p)
 
 async def read_p(stop_torque=.299,v=0,torque=0):
     """
@@ -179,7 +169,7 @@ async def read_p(stop_torque=.299,v=0,torque=0):
     await c.set_stop()
     print("Position(rev):", p)
     print("Position in Degree: ","{:.2f}".format(math.degrees(p)))
-    return rev2m(p)
+    return p
 
 async def stopping_acc_test(c,n_loop):
     """
@@ -195,9 +185,9 @@ async def stopping_acc_test(c,n_loop):
     position_setpoint_list_f = []
     position_setpoint_list_b = []
     for i in range(n_loop):
-        position_setpoint_list_f.append(math.degrees((await motor_zero(c,v=-1,test=True)*(2*math.pi)))/1000)
+        position_setpoint_list_f.append(math.degrees((await motor_zero(c,v=-1,test=True)*(2*math.pi))))
     for i in range(n_loop):
-        position_setpoint_list_b.append(math.degrees((await motor_zero(c,stop_torque=.1,v=1,test=True)*(2*math.pi)))/1000)
+        position_setpoint_list_b.append(math.degrees((await motor_zero(c,stop_torque=.1,v=1,test=True)*(2*math.pi))))
     sns.boxplot(data=position_setpoint_list_f,  orient='v', ax=axes[0]).set(title='Forward')
     sns.boxplot(data=position_setpoint_list_b,  orient='v' , ax=axes[1]).set(title='Backward')
     f.suptitle('Stopping Accuracy Test Plot')
