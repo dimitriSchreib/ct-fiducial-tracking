@@ -8,7 +8,7 @@ from roboticstoolbox import ET as E
 from ct_tracking_library.ct_tracking_functions import *
 from ct_tracking_library.ct_processing_functions import *
 
-def find_fk(m1,m2,robot,plot=False,debug=False):
+def find_fk(m1,m2,robot,Eval=None,plot=False,debug=False):
     """
     This function finds the Farward transformation of the input Markers with respect to motor joint postion:
 
@@ -30,7 +30,10 @@ def find_fk(m1,m2,robot,plot=False,debug=False):
     #e = E.tx(0)*E.ty(0)*E.tz(0)*E.tz()
     e = E.tx(-40.5)*E.ty(21.7)*E.tz(6.56)*E.tz()
     e = e*E.Rx(90, 'deg')*E.Ry(-90, 'deg')
-    Tfk = SE3(e.eval([(robot.joint_postion-robot.zero_postion)]))
+    if Eval is None:
+        Tfk = SE3(e.eval([(robot.joint_postion-robot.zero_postion)]))
+    else:
+        Tfk = SE3(e.eval([(Eval)]))
     Tfinal = Tbase.inv()*Tee
     if debug:
         Tfinal.plot(frame='1',color='blue')

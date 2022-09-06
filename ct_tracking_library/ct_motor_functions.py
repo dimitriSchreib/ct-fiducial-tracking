@@ -105,7 +105,6 @@ async def one_axis_farward(c,intial_position,user_desried=0,stop_torque=.299,v=1
     """
     ip = intial_position
     ud = user_desried
-    print("Target postion: ",ud+ip)
     print("Begain Testing")
     await c.set_stop()
     while True:
@@ -117,7 +116,7 @@ async def one_axis_farward(c,intial_position,user_desried=0,stop_torque=.299,v=1
         elif state.values[moteus.Register.POSITION] >= (ud+ip):
             break
     p = state.values[moteus.Register.POSITION]
-    print("Finish")
+    print("Finish, the position is: ",rev2m(p))
     return rev2m(p)
 
 async def one_axis_backward(c,intial_position,user_desried=0,stop_torque=.299,v=1,torque=0.3):
@@ -136,7 +135,6 @@ async def one_axis_backward(c,intial_position,user_desried=0,stop_torque=.299,v=
     """
     ip = intial_position
     ud = user_desried
-    print("Target postion: ",ud+ip)
     print("car coming back")
     await c.set_stop()
     while True:
@@ -148,7 +146,7 @@ async def one_axis_backward(c,intial_position,user_desried=0,stop_torque=.299,v=
         elif state.values[moteus.Register.POSITION] <= (ud+ip):
             break
     p = state.values[moteus.Register.POSITION]
-    print("Finish")
+    print("Finish, the position is: ",rev2m(p))
     return rev2m(p)
 
 async def read_p(stop_torque=.299,v=0,torque=0):
@@ -169,6 +167,7 @@ async def read_p(stop_torque=.299,v=0,torque=0):
     await c.set_stop()
     print("Position(rev):", p)
     print("Position in Degree: ","{:.2f}".format(math.degrees(p)))
+    print("Position in mm: ",rev2m(p))
     return p
 
 async def stopping_acc_test(c,n_loop):

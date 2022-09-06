@@ -93,7 +93,7 @@ def visualize_tracked_marker(marker, final_R, final_t, permuted_centroids):
 
     return marker_3d_base, marker_3d_transformed, err
 
-def find_best_transform_from_candidate_marker_clusters(marker, good_centroid_clusters):
+def find_best_transform_from_candidate_marker_clusters(marker, good_centroid_clusters,debug=False):
     '''
     find best (lowest reconstruction error) marker set in each rigid body (if multiple)
     inputs: 
@@ -127,7 +127,8 @@ def find_best_transform_from_candidate_marker_clusters(marker, good_centroid_clu
             error_list.append(error)
 
     error_list = np.array(error_list)
-    print(error_list)
+    if debug:
+        print(error_list)
     #print(R_list)
     #print(t_list)
     #print(permuted_centroids_list)
@@ -142,7 +143,8 @@ def find_best_transform_from_candidate_marker_clusters(marker, good_centroid_clu
 
     if min_error < 10:
         print("Everything looks good!")
-        print("the final error is: ",min_error)
+        if debug:
+            print("the final error is: ",min_error)
     else:
         print("Hmm something doesn't look right ...")
 
@@ -197,7 +199,7 @@ def calculate_transform(num_markers,centroids,marker_geometry, verbose=False):
     if verbose:
         if min_error < 10:
             print("Everything looks good!")
-            print("the final error is: ",min_error)
+            #print("the final error is: ",min_error)
         else:
             print("Hmm something doesn't look right ...")
     return final_R,final_t, permuted_centroids, min_error
@@ -535,7 +537,7 @@ def find_centroid_clusters(centroids, good_inds, epsilon=35.0):
     pcd_centroid_clusters = []
     for label in np.unique(labels).tolist():
         selected_indices = np.where(labels==label)
-        print(selected_indices[0])
+        #print(selected_indices[0])
         pcd_selected_centroid = pcd_centroids.select_by_index(selected_indices[0])
         #if len(selected_indices) > 0:
         #    for i in range(len(selected_indices)-1):
