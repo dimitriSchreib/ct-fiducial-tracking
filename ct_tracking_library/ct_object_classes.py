@@ -9,12 +9,13 @@ class Marker():
     T(np.array): transform of the marker.
     error: rmse of the spere picked.
     """
-    def __init__(self,name,d_key,time=None,geometry=None,T=None,error=None):
+    def __init__(self,name,d_key,time=None,geometry=None,T=None,error=None,T2=None):
         self.time = time
         self.name = name
         self.key = d_key
         self.geometry = geometry
         self.T = T
+        self.T2 = T2
         self.error = error
     
     def __repr__(self):
