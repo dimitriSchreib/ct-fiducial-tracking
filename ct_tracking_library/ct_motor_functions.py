@@ -184,7 +184,7 @@ async def stopping_acc_test(c,n_loop):
     position_setpoint_list_f = []
     position_setpoint_list_b = []
     for i in range(n_loop):
-        position_setpoint_list_f.append(math.degrees((await motor_zero(c,v=-1,test=True)*(2*math.pi))))
+        position_setpoint_list_f.append(math.degrees((await motor_zero(c,stop_torque=.2,v=-1,test=True)*(2*math.pi))))
     for i in range(n_loop):
         position_setpoint_list_b.append(math.degrees((await motor_zero(c,stop_torque=.1,v=1,test=True)*(2*math.pi))))
     sns.boxplot(data=position_setpoint_list_f,  orient='v', ax=axes[0]).set(title='Forward')
